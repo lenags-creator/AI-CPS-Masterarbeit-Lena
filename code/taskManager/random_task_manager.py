@@ -16,6 +16,12 @@ import numpy as np
 import json
 from collections import defaultdict
 
+# get current directory, go up (../code)
+base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.append(base_dir)
+
+import messageClient.mqtt_broker_listener as broker_listener
+
 # Add the parent directory (where "taskGenerator" is) to the Python path
 current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(current_dir)
@@ -671,8 +677,16 @@ if __name__ == '__main__':
    # Set Last Will Message so the manager knows where not to give tasks anymore
    client.will_set(f"status/{client_id}", "Disconnected", qos=1, retain=True)
 
-   MQTT_Broker = get_broker_ip_via_file()
-   Broker_Port = 1883
+   # Get the broker ip from the mDNS
+   broker_info = broker_listener.discover_broker()
+   
+   if broker_info:
+      MQTT_Broker, Broker_Port = broker_info
+      print(f"Using broker: {MQTT_Broker}:{Broker_Port}")
+   else:
+      print("No MQTT broker discovered, using fallback IP.")
+      MQTT_Broker = get_broker_ip_via_file() or "localhost"
+      Broker_Port = 1883
 
    try:
       # Connect to MQTT broker
